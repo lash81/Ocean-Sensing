@@ -54,8 +54,6 @@ void loop(void) {
   Serial.println("Finished turbidity readings. Initializing Throughput readings...");
   
   delay(2000);
-
-  // loop to sample sensorB 5 times. NOTE: the first 2 samples (i = 0, 1) will be incorrect; samples i = 2,3,4 give proper readings.
   tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X);  // initialize sensor values each time the function gets called
 
   digitalWrite(sensorA, HIGH);  // set "pin" to high, powering the sensor
