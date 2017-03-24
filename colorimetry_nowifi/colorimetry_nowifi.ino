@@ -65,8 +65,8 @@ void sensorON(int pin){  // "pin" is determined in the main loop, and is the pin
     
   // collect data from color sensor
   tcs.getRawData(&r, &g, &b, &c);
-  colorTemp = tcs.calculateColorTemperature(r, g, b);
-  lux = tcs.calculateLux(r, g, b);
+//  colorTemp = tcs.calculateColorTemperature(r, g, b);
+//  lux = tcs.calculateLux(r, g, b);
   
   // display data
 //  Serial.print("Pin: "); Serial.print(pin, DEC);
