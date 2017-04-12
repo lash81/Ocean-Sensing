@@ -6,7 +6,7 @@ Adafruit_TCS34725 tcs;
 uint16_t r, g, b, c, colorTemp, lux = 0;  // define values for color sensor readings, initialize to 0
 int turbiditySensor = 12;  // pin 12 = Turbidity color sensor VDD
 int throughputSensor = 14;  // pin 14 = Throughput color sensor VDD
-int NUM_DATA = 101; // number of data points to collect
+int NUM_DATA = 20; // number of data points to collect
 
 void setup(void) {
   Serial.begin(115200);
@@ -28,7 +28,7 @@ void loop(void) {
       while (1);
     }
 
-    for(int i = 0; i < NUM_DATA; i++){
+    for(int i = 0; i < NUM_DATA+1; i++){ // 1 dummy point because the first reading is always 0.
       sensorON(throughputSensor);
       delay(750);
     }
