@@ -4,14 +4,17 @@
 #include <ESP8266mDNS.h>
 #include <Wire.h>
 #include "Adafruit_TCS34725.h"
+#include "Adafruit_ADS1015.h"
 
 // Initialize variables
 Adafruit_TCS34725 tcs;
+Adafruit_ADS1115 ads;  /* Use this for the 16-bit version */
 uint16_t r, g, b, c, colorTemp, lux = 0;  // define values for color sensor readings, initialize to 0
 int turbiditySensor = 12;  // pin 12 = Turbidity color sensor VDD
 int throughputSensor = 14;  // pin 14 = Throughput color sensor VDD
 int gpio0_pin = 0; // pin 0 = ESP8266 Red LED
-int NUM_DATA = 10; // number of data points to collect
+int NUM_DATA = 50; // number of data points to collect
+int pH_DATA = 300;
 int currDataSet = 1;
 
 String webPage = "";
@@ -37,10 +40,12 @@ void setup(void){
   pinMode(throughputSensor, OUTPUT);
   pinMode(turbiditySensor, OUTPUT);
   digitalWrite(gpio0_pin, HIGH);
+  ads.begin();
   delay(1000);
 
   // Initiate serial and WIFI
   Serial.begin(115200);
+  WiFi.setAutoConnect(true);
   WiFi.begin(ssid, password);
   Serial.print("Attemping to connect to: ");
   Serial.println(ssid);
@@ -82,9 +87,10 @@ void setup(void){
   server.on("/collect", [](){
     // Sends 200 OK immediately to avoid ERR_CONNECTION_TIMED_OUT
     String modified_page = webPage;
-    modified_page += "<p>Starting to collect data. Data will have finished collecting when red LED turns off.</p>";
-    digitalWrite(gpio0_pin, LOW);
+    modified_page += "<p>Waiting 30 seconds to collect data. Data will have finished collecting when red LED turns off.</p>";
     server.send(200, "text/html", modified_page);
+    delay(30000);
+    digitalWrite(gpio0_pin, LOW);
 
     currDataPage += "<p><b>Test " + String(currDataSet, DEC) + ":</b></p>";
 
@@ -128,9 +134,21 @@ void setup(void){
       sensorON(turbiditySensor);
       delay(750);
     }
+    currDataPage +=  "<p>Finished turbidity readings. Initializing pH readings...</p>";
 
-    currDataSet++;
+    int16_t results;
+    for(int k = 0; k< pH_DATA; k++){
+      float multiplier = 0.1875F;
+      results = ads.readADC_Differential_0_1();
+      Serial.println(results * multiplier);
+      currDataPage +=  "<p>"+String(results * multiplier, 2)+"</p>";
+      delay(1000);
+    }
+    
     digitalWrite(turbiditySensor, LOW);
+    delay(1000);
+    
+    currDataSet++;
     digitalWrite(gpio0_pin, HIGH);
     delay(1000);
   });
@@ -164,7 +182,7 @@ void sensorON(int pin){  // "pin" is determined in the main loop, and is the pin
   colorTemp = tcs.calculateColorTemperature(r, g, b);
   lux = tcs.calculateLux(r, g, b);
 
-  currDataPage += "<p>Color Temp: " + String(colorTemp, DEC) + " K - " + "Lux: " + String(lux, DEC) + " - R: " + String(r, DEC) + " G: " + String(g, DEC) + " B: " + String(b, DEC) + " C: " + String(c, DEC) + "</p>";
+  currDataPage += "<p>" + String(g, DEC) + "</p>";
 
   // display data
   Serial.print("Pin: "); Serial.print(pin, DEC);
