@@ -13,7 +13,7 @@ uint16_t r, g, b, c, colorTemp, lux = 0;  // define values for color sensor read
 int turbiditySensor = 12;  // pin 12 = Turbidity color sensor VDD
 int throughputSensor = 14;  // pin 14 = Throughput color sensor VDD
 int gpio0_pin = 0; // pin 0 = ESP8266 Red LED
-int NUM_DATA = 0; // number of data points to collect
+int NUM_DATA = 30; // number of data points to collect
 int pH_DATA = 300;
 int currDataSet = 1;
 
@@ -98,26 +98,39 @@ void setup(void){
 //    delay(30000);
     digitalWrite(gpio0_pin, HIGH);
 
+    digitalWrite(throughputSensor, HIGH);
+    delay(2000); // Need to delay to wait for sensor to initialize itself
+
+    if (tcs.begin()) {
+      Serial.println("Found throughput color sensor!");
+    } else {
+      Serial.println("Throughput sensor could not be found ... check your connections");
+      while (1);
+    }
+
     currDataPage += "<p><b>Test " + String(currDataSet, DEC) + ":</b></p>";
+
+    currDataPage +=  "<p>Initializing pH readings</p>";
+
+    int16_t results;
+    for(int k = 0; k< pH_DATA; k++){
+      float multiplier = 0.1875F;
+      results = ads.readADC_Differential_0_1();
+      Serial.println(results * multiplier);
+      currDataPage +=  "<p>"+String(results * multiplier, 2)+"</p>";
+      delay(1000);
+    }
 
     // THROUGHPUT READINGS
     tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X);
-//    Serial.println("Initializing Throughput Readings...");
-//    currDataPage += "<p>Initializing Throughput Readings...</p>";
-    digitalWrite(throughputSensor, HIGH);
-//    delay(2000); // Need to delay to wait for sensor to initialize itself
-//
-//    if (tcs.begin()) {
-//      Serial.println("Found throughput color sensor!");
-//    } else {
-//      Serial.println("Throughput sensor could not be found ... check your connections");
-//      while (1);
-//    }
-//
-//    for(int i = 0; i < NUM_DATA; i++){
-//      sensorON(throughputSensor);
-//      delay(750);
-//    }
+    Serial.println("Initializing Throughput Readings...");
+    currDataPage += "<p>Initializing Throughput Readings...</p>";
+
+
+    for(int i = 0; i < NUM_DATA; i++){
+      sensorON(throughputSensor);
+      delay(750);
+    }
 //
 //    digitalWrite(throughputSensor, LOW);
 //    Serial.println("Finished throughput readings. Initializing Turbidity readings...");
@@ -140,16 +153,7 @@ void setup(void){
 //      sensorON(turbiditySensor);
 //      delay(750);
 //    }
-    currDataPage +=  "<p>Finished turbidity readings. Initializing pH readings...</p>";
 
-    int16_t results;
-    for(int k = 0; k< pH_DATA; k++){
-      float multiplier = 0.1875F;
-      results = ads.readADC_Differential_0_1();
-      Serial.println(results * multiplier);
-      currDataPage +=  "<p>"+String(results * multiplier, 2)+"</p>";
-      delay(1000);
-    }
     
 //    digitalWrite(turbiditySensor, LOW);
     delay(1000);
