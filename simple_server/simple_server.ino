@@ -95,7 +95,7 @@ void setup(void){
     String modified_page = webPage;
     modified_page += "<p>Waiting 30 seconds to collect data. Data will have finished collecting when red LED turns on.</p>";
     server.send(200, "text/html", modified_page);
-//    delay(30000);
+    delay(10000);
     digitalWrite(gpio0_pin, HIGH);
 
     digitalWrite(throughputSensor, HIGH);
