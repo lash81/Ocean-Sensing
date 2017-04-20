@@ -13,7 +13,7 @@ uint16_t r, g, b, c, colorTemp, lux = 0;  // define values for color sensor read
 int turbiditySensor = 12;  // pin 12 = Turbidity color sensor VDD
 int throughputSensor = 14;  // pin 14 = Throughput color sensor VDD
 int gpio0_pin = 0; // pin 0 = ESP8266 Red LED
-int NUM_DATA = 50; // number of data points to collect
+int NUM_DATA = 0; // number of data points to collect
 int pH_DATA = 300;
 int currDataSet = 1;
 
@@ -22,11 +22,15 @@ String currDataPage = "";
 
 MDNSResponder mdns;
 
+//IPAddress ip(192, 168, 1, 100); // static ip for tp-link
+IPAddress ip(172, 30, 6, 28); 
 // Replace with your network credentials
 const char* ssid = "visitor";
 const char* password = "";
 //const char* ssid = "ECE449GROUP4";
 //const char* password = "66808558";
+//const char* ssid = "TP-LINK_CAC4";
+//const char* password = "97083382";
 
 ESP8266WebServer server(80);
 
@@ -45,6 +49,8 @@ void setup(void){
 
   // Initiate serial and WIFI
   Serial.begin(115200);
+  
+  WiFi.disconnect();
   WiFi.setAutoConnect(true);
   WiFi.begin(ssid, password);
   Serial.print("Attemping to connect to: ");
@@ -87,53 +93,53 @@ void setup(void){
   server.on("/collect", [](){
     // Sends 200 OK immediately to avoid ERR_CONNECTION_TIMED_OUT
     String modified_page = webPage;
-    modified_page += "<p>Waiting 30 seconds to collect data. Data will have finished collecting when red LED turns off.</p>";
+    modified_page += "<p>Waiting 30 seconds to collect data. Data will have finished collecting when red LED turns on.</p>";
     server.send(200, "text/html", modified_page);
-    delay(30000);
-    digitalWrite(gpio0_pin, LOW);
+//    delay(30000);
+    digitalWrite(gpio0_pin, HIGH);
 
     currDataPage += "<p><b>Test " + String(currDataSet, DEC) + ":</b></p>";
 
     // THROUGHPUT READINGS
     tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X);
-    Serial.println("Initializing Throughput Readings...");
-    currDataPage += "<p>Initializing Throughput Readings...</p>";
+//    Serial.println("Initializing Throughput Readings...");
+//    currDataPage += "<p>Initializing Throughput Readings...</p>";
     digitalWrite(throughputSensor, HIGH);
-    delay(2000); // Need to delay to wait for sensor to initialize itself
+//    delay(2000); // Need to delay to wait for sensor to initialize itself
+//
+//    if (tcs.begin()) {
+//      Serial.println("Found throughput color sensor!");
+//    } else {
+//      Serial.println("Throughput sensor could not be found ... check your connections");
+//      while (1);
+//    }
+//
+//    for(int i = 0; i < NUM_DATA; i++){
+//      sensorON(throughputSensor);
+//      delay(750);
+//    }
+//
+//    digitalWrite(throughputSensor, LOW);
+//    Serial.println("Finished throughput readings. Initializing Turbidity readings...");
+//    currDataPage += "<p>Finished throughput readings. Initializing turbidity readings...</p>";
+//    delay(2000);  // Extra delay just in case
 
-    if (tcs.begin()) {
-      Serial.println("Found throughput color sensor!");
-    } else {
-      Serial.println("Throughput sensor could not be found ... check your connections");
-      while (1);
-    }
-
-    for(int i = 0; i < NUM_DATA; i++){
-      sensorON(throughputSensor);
-      delay(750);
-    }
-
-    digitalWrite(throughputSensor, LOW);
-    Serial.println("Finished throughput readings. Initializing Turbidity readings...");
-    currDataPage += "<p>Finished throughput readings. Initializing turbidity readings...</p>";
-    delay(2000);  // Extra delay just in case
-
-    // TURBIDITY READINGS
-    tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X);  // initialize sensor values each time the function gets called
-    digitalWrite(turbiditySensor, HIGH);
-    delay(2000); // Need to wair for sensor to initialize itself
-
-    if (tcs.begin()) {
-      Serial.println("Found turbidity color sensor!");
-    } else {
-      Serial.println("Turbidity sensor could not be found ... check your connections");
-      while (1);
-    }
-
-    for(int j = 0; j < NUM_DATA; j++){
-      sensorON(turbiditySensor);
-      delay(750);
-    }
+//    // TURBIDITY READINGS
+//    tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X);  // initialize sensor values each time the function gets called
+//    digitalWrite(turbiditySensor, HIGH);
+//    delay(2000); // Need to wair for sensor to initialize itself
+//
+//    if (tcs.begin()) {
+//      Serial.println("Found turbidity color sensor!");
+//    } else {
+//      Serial.println("Turbidity sensor could not be found ... check your connections");
+//      while (1);
+//    }
+//
+//    for(int j = 0; j < NUM_DATA; j++){
+//      sensorON(turbiditySensor);
+//      delay(750);
+//    }
     currDataPage +=  "<p>Finished turbidity readings. Initializing pH readings...</p>";
 
     int16_t results;
@@ -145,11 +151,11 @@ void setup(void){
       delay(1000);
     }
     
-    digitalWrite(turbiditySensor, LOW);
+//    digitalWrite(turbiditySensor, LOW);
     delay(1000);
     
     currDataSet++;
-    digitalWrite(gpio0_pin, HIGH);
+    digitalWrite(gpio0_pin, LOW);
     delay(1000);
   });
 
@@ -171,7 +177,29 @@ void setup(void){
 }
 
 void loop(void){
-  server.handleClient();
+  if (WiFi.status() != WL_CONNECTED)
+    {
+      wifiConnect();
+    }
+    else{
+        server.handleClient();
+    }
+}
+
+void wifiConnect(){
+  WiFi.disconnect();
+  WiFi.begin(ssid, password);
+  Serial.print("Attemping to reconnect to: ");
+  Serial.println(ssid);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Reconnected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
 }
 
 // create function to call the sensor depending on the pin desired
